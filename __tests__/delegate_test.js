@@ -9,8 +9,8 @@ const config = {
 
 let blockchainManager;
 const issuerIdentity = {
-  did: process.env.TEST_ISSUER_DID,
-  privateKey: process.env.TEST_ISSUER_PRIV_KEY,
+  did: process.env.DELEGATOR_DID,
+  privateKey: process.env.DELEGATOR_PRIV_KEY,
 };
 
 let delegateIdentity;

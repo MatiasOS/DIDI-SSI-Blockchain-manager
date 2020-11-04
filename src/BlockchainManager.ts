@@ -1,13 +1,12 @@
 import { Resolver } from "did-resolver";
 import Web3 from "web3";
 
-// import DidRegistryContract from "ethr-did-registry";
 const DidRegistryContract = require("ethr-did-registry");
-
-// import didJWT from "did-jwt";
 const didJWT = require("did-jwt");
 
 const { delegateTypes, getResolver } = require("ethr-did-resolver");
+const EthrDID = require("ethr-did");
+const { createVerifiableCredential, verifyCredential } = require("did-jwt-vc");
 
 let web3 = null,
   provider = null,
@@ -84,7 +83,6 @@ export class BlockchainManager {
   async getGasPrice() {
     const lastBlock = await web3.eth.getBlock("latest");
     // 1.1 representes a 10% more of the minimumGasPrice collected
-    // return Math.round(parseInt(lastBlock.minimumGasPrice) * 1.1);
     return Math.round(parseInt(lastBlock.getGasPrice) * this.gas_increment);
   }
 
@@ -219,8 +217,8 @@ export class BlockchainManager {
   }
 
   /**
-   * Decode a JWT string with the given audience
-   * @param {string} jwt JWT to be decoded
+   * Verify a JWT string with the given audience
+   * @param {string} jwt JWT to be verified
    * @param {string} audienceDID DID of the audience if needed
    */
   async verifyJWT(jwt, audienceDID = undefined) {
@@ -229,4 +227,49 @@ export class BlockchainManager {
       audience: audienceDID,
     });
   }
+
+  async decodeJWT(jwt) {
+    return didJWT.decodeJWT(jwt);
+  }
+
+  // genera un certificado asociando la informacion recibida en "subject" con el did
+  async createCertificate(
+    subject_did,  // this did has this prefix always (did:ethr:) it doesn't change
+    subject_payload,
+    expDate,    
+    issuer_did,   // the issuer might change and has different prefixes
+    issuer_pkey
+  ) {
+    const vcissuer = new EthrDID({
+      address: issuer_did,
+      privateKey: issuer_pkey,
+    });
+
+    const date = expDate ? (new Date(expDate).getTime() / 1000) | 0 : undefined;
+
+    const vcPayload = {
+      sub: subject_did,
+      vc: {
+        "@context": ["https://www.w3.org/2018/credentials/v1"],
+        type: ["VerifiableCredential"],
+        credentialSubject: subject_payload,
+      },
+    };
+
+    if (expDate) vcPayload["exp"] = date;
+    const result = await createVerifiableCredential(vcPayload, vcissuer);
+    return result;
+  }
+
+  async verifyCertificate(jwt) {
+      const result = await verifyCredential(jwt, this.didResolver);
+      
+      return result;
+  }
 }
+
+// AGREGAR ESTE METODO !!!!!!!!!!!!!!
+
+// function createIdentities() {
+//   delegateIdentity = Credentials.createIdentity();
+// }
