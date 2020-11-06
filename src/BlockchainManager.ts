@@ -11,7 +11,8 @@ const { delegateTypes, getResolver } = require("ethr-did-resolver");
 
 let web3 = null,
   provider = null,
-  blockchainContract = null;
+  blockchainContract = null,
+  selected = null;
 
 const blockChainSelector = (
   networkConfig: { name: string; rpcUrl: string; registry: string }[],
@@ -43,6 +44,7 @@ const blockChainSelector = (
     provider = new Web3.providers.HttpProvider(networkConfig[index].rpcUrl);
     web3 = new Web3(provider);
     blockchainContract = networkConfig[index].registry;
+    selected = networkConfig[index].name;
     return null;
   } else {
     throw "Invalid Provider Prefix";
@@ -127,6 +129,7 @@ export class BlockchainManager {
   async addDelegate(identity: Identity, delegateDID: string, validity: string) {
     blockChainSelector(this.config.providerConfig.networks, delegateDID);
 
+    console.log(`Selected blockchain for ${delegateDID} is ${selected}` );
     const identityAddr = BlockchainManager.getDidAddress(identity.did);
     const delegateAddr = BlockchainManager.getDidAddress(delegateDID);
 
@@ -142,8 +145,11 @@ export class BlockchainManager {
       delegateAddr,
       validity
     );
+    console.log(`Selected blockchain for ${delegateDID} is ${selected} getGasLimit` );
     options.gas = await this.getGasLimit(addDelegateMethod, options);
+    console.log(`Selected blockchain for ${delegateDID} is ${selected} getGasPrice` );
     options.gasPrice = await this.getGasPrice();
+    console.log(`Selected blockchain for ${delegateDID} is ${selected} send` );
     return addDelegateMethod.send(options);
   }
 
